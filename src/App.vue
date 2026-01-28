@@ -8,18 +8,76 @@
       <nav class="nav">
         <router-link to="/">首页</router-link>
         <router-link to="/chat">AI 对话</router-link>
-    <router-link to="/resume-parse">简历解析</router-link>
+        <router-link to="/resume-parse">简历解析</router-link>
         <router-link to="/chat-resume">智能简历分析</router-link>
         <router-link to="/job-collection">职位采集</router-link>
         <router-link to="/job-import">职位导入</router-link>
-  </nav>
+
+        <!-- 用户信息区域 -->
+        <div v-if="authStore.isAuthenticated" class="user-menu">
+          <div class="user-info" @click="toggleMenu">
+            <span class="user-name">{{ authStore.user?.username || authStore.user?.phone }}</span>
+            <span class="user-role">{{ authStore.userRoleDisplay }}</span>
+          </div>
+          <div v-if="showMenu" class="dropdown-menu">
+            <router-link to="/profile" class="menu-item" @click="showMenu = false">
+              个人信息
+            </router-link>
+            <router-link to="/change-password" class="menu-item" @click="showMenu = false">
+              修改密码
+            </router-link>
+            <div class="menu-divider"></div>
+            <a class="menu-item logout" @click="handleLogout">
+              退出登录
+            </a>
+          </div>
+        </div>
+
+        <!-- 未登录显示登录按钮 -->
+        <router-link v-else to="/login" class="login-btn">登录</router-link>
+      </nav>
     </header>
 
     <main class="page">
-  <router-view/>
+      <router-view/>
     </main>
   </div>
 </template>
+
+<script>
+import { useAuthStore } from '@/stores/auth'
+
+export default {
+  name: 'App',
+  setup() {
+    const authStore = useAuthStore()
+    return { authStore }
+  },
+  data() {
+    return {
+      showMenu: false
+    }
+  },
+  methods: {
+    toggleMenu() {
+      this.showMenu = !this.showMenu
+    },
+    handleLogout() {
+      this.showMenu = false
+      this.authStore.logout()
+      this.$router.push('/login')
+    }
+  },
+  mounted() {
+    // 点击外部关闭菜单
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.user-menu')) {
+        this.showMenu = false
+      }
+    })
+  }
+}
+</script>
 
 <style>
 :root {
@@ -103,5 +161,85 @@
   max-width: 1280px;
   margin: 24px auto 40px;
   padding: 0 24px;
+}
+
+/* 用户菜单样式 */
+.user-menu {
+  position: relative;
+  margin-left: 20px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.user-info:hover {
+  background: #f5f7fa;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.user-role {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 150px;
+  overflow: hidden;
+  z-index: 100;
+}
+
+.menu-item {
+  display: block;
+  padding: 12px 16px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: #f5f7fa;
+}
+
+.menu-item.logout {
+  color: #f56c6c;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #e4e7ed;
+  margin: 4px 0;
+}
+
+.login-btn {
+  margin-left: 20px;
+  padding: 8px 20px !important;
+  background: var(--primary) !important;
+  color: white !important;
+  border-radius: 20px !important;
+}
+
+.login-btn:hover {
+  opacity: 0.9;
 }
 </style>

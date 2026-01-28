@@ -12,6 +12,7 @@
     "@matechat/core": "^1.10.0",
     "axios": "^1.13.2",
     "core-js": "^3.8.3",
+    "pinia": "^3.0.4",
     "vue": "^3.2.13",
     "vue-devui": "^1.6.35",
     "vue-router": "^4.0.3"

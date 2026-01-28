@@ -72,8 +72,6 @@
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   name: 'ChatView',
   data() {
@@ -82,6 +80,7 @@ export default {
       inputMessage: '',
       isStreaming: false,
       streamingContent: '',
+      conversationId: null,
       startPage: true,
       userAvatar: 'https://picsum.photos/id/1005/40/40',
       aiAvatar: 'https://picsum.photos/id/1012/40/40',
@@ -129,31 +128,121 @@ export default {
   methods: {
     async sendMessage() {
       if (!this.inputMessage.trim() || this.isStreaming) return;
-      
+
       const userMessage = this.inputMessage.trim();
       this.messages.push({ type: 'user', content: userMessage, loading: false });
       this.inputMessage = '';
       this.isStreaming = true;
       this.streamingContent = '';
       this.startPage = false;
-      
+
       try {
-        const response = await axios.post('http://localhost:8080/api/chat', `"${userMessage}"`, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        // 非流式处理（目前后端不支持流式）
-        this.messages.push({ type: 'ai', content: response.data, loading: false });
+        await this.streamChat(userMessage);
       } catch (error) {
         console.error('聊天请求失败:', error);
-        this.messages.push({ type: 'ai', content: '抱歉，聊天请求失败，请稍后重试。', loading: false });
-      } finally {
+        this.messages.push({
+          type: 'ai',
+          content: '抱歉，聊天请求失败，请稍后重试。',
+          loading: false
+        });
         this.isStreaming = false;
         this.streamingContent = '';
       }
     },
+
+    async streamChat(message) {
+      const requestBody = {
+        message: message,
+        conversationId: this.conversationId
+      };
+
+      try {
+        const response = await fetch('http://localhost:8080/api/chat/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data.trim()) {
+                try {
+                  const event = JSON.parse(data);
+                  this.handleStreamEvent(event);
+                } catch (e) {
+                  console.error('解析SSE数据失败:', e, data);
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('流式请求失败:', error);
+        throw error;
+      }
+    },
+
+    handleStreamEvent(event) {
+      switch (event.type) {
+        case 'start':
+          // 开始接收流式数据
+          this.conversationId = event.conversationId;
+          this.streamingContent = '';
+          break;
+
+        case 'content':
+          // 接收内容片段
+          this.streamingContent += event.content;
+          break;
+
+        case 'done':
+          // 流式传输完成
+          if (this.streamingContent) {
+            this.messages.push({
+              type: 'ai',
+              content: this.streamingContent,
+              loading: false
+            });
+          }
+          this.isStreaming = false;
+          this.streamingContent = '';
+          break;
+
+        case 'error':
+          // 错误处理
+          this.messages.push({
+            type: 'ai',
+            content: event.content || '处理请求时出现错误',
+            loading: false
+          });
+          this.isStreaming = false;
+          this.streamingContent = '';
+          break;
+      }
+    },
+
     async onSubmit(content) {
       this.inputMessage = content;
       await this.sendMessage();

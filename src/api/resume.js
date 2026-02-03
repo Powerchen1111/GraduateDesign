@@ -7,15 +7,23 @@ import axiosInstance from './axios'
 /**
  * 上传并解析简历
  * @param {File} file - 简历文件
+ * @param {Function} onProgress - 上传进度回调
  * @returns {Promise}
  */
-export function parseResume(file) {
+export function parseResume(file, onProgress) {
   const formData = new FormData()
   formData.append('file', file)
 
   return axiosInstance.post('/resumes/parse', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
+    },
+    timeout: 300000, // 5分钟超时，适合大文件和AI解析
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        onProgress(percentCompleted)
+      }
     }
   })
 }

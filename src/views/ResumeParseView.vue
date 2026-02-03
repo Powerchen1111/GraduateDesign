@@ -77,13 +77,13 @@ export default {
         const formData = new FormData();
         formData.append('file', this.selectedFile);
         
-        const response = await axios.post('http://localhost:8080/api/resume/parse', formData, {
+        const response = await axios.post('http://localhost:8080/api/resumes/parse', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
-        
-        this.parseResult = response.data;
+
+        this.parseResult = response;
       } catch (error) {
         console.error('解析失败:', error);
         this.errorMessage = '解析失败，请检查文件格式是否正确或稍后重试';

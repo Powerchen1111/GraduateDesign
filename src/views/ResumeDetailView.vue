@@ -231,7 +231,8 @@ export default {
 
       try {
         const response = await getResumeById(id)
-        this.resume = response.data
+        console.log('简历详情响应:', response) // 调试日志
+        this.resume = response // axios拦截器已经返回了data
       } catch (error) {
         console.error('加载简历失败:', error)
         this.resume = null

@@ -34,8 +34,20 @@
       <p>加载中...</p>
     </div>
 
+    <!-- 调试信息 -->
+    <div v-if="!loading" style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; border-radius: 5px;">
+      <strong>调试信息:</strong><br>
+      resumes 数组长度: {{ resumes.length }}<br>
+      resumes 是否为数组: {{ Array.isArray(resumes) }}<br>
+      loading 状态: {{ loading }}<br>
+      <details>
+        <summary>点击查看 resumes 数据</summary>
+        <pre style="max-height: 200px; overflow: auto;">{{ JSON.stringify(resumes, null, 2) }}</pre>
+      </details>
+    </div>
+
     <!-- 简历列表 -->
-    <div v-else-if="resumes.length > 0" class="resume-grid">
+    <div v-if="!loading && resumes.length > 0" class="resume-grid">
       <div
         v-for="resume in resumes"
         :key="resume.id"
@@ -79,7 +91,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="empty-state">
+    <div v-if="!loading && resumes.length === 0" class="empty-state">
       <div class="empty-icon">📭</div>
       <h3>还没有简历</h3>
       <p>上传您的第一份简历开始使用</p>
@@ -114,18 +126,40 @@ export default {
   },
   methods: {
     async loadResumes() {
+      console.log('========== 前端：开始加载简历列表 ==========')
       this.loading = true
       this.errorMessage = ''
 
       try {
+        console.log('前端：调用 getResumes(true)')
         const response = await getResumes(true) // 只获取我的简历
-        this.resumes = response.data || []
+        console.log('前端：收到响应')
+        console.log('前端：响应类型:', typeof response)
+        console.log('前端：响应是否为数组:', Array.isArray(response))
+        console.log('前端：响应内容:', response)
+        console.log('前端：响应长度:', response?.length)
+
+        if (Array.isArray(response)) {
+          console.log('前端：响应是数组，长度为', response.length)
+          this.resumes = response
+          console.log('前端：this.resumes 已更新，长度为', this.resumes.length)
+          console.log('前端：this.resumes 内容:', this.resumes)
+        } else {
+          console.log('前端：响应不是数组，设置为空数组')
+          this.resumes = []
+        }
+
+        console.log('前端：最终 this.resumes.length =', this.resumes.length)
       } catch (error) {
-        console.error('加载简历列表失败:', error)
+        console.error('前端：加载简历列表失败')
+        console.error('前端：错误对象:', error)
+        console.error('前端：错误消息:', error.message)
+        console.error('前端：错误堆栈:', error.stack)
         this.errorMessage = '加载简历列表失败'
         this.resumes = []
       } finally {
         this.loading = false
+        console.log('========== 前端：加载简历列表完成 ==========')
       }
     },
 
@@ -154,7 +188,8 @@ export default {
             response = await searchBySkills(this.searchQuery)
             break
         }
-        this.resumes = response.data || []
+        console.log('搜索响应:', response) // 调试日志
+        this.resumes = Array.isArray(response) ? response : []
 
         if (this.resumes.length === 0) {
           this.errorMessage = '未找到匹配的简历'

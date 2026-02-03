@@ -244,13 +244,13 @@ export default {
         const formData = new FormData();
         formData.append('file', this.selectedFile);
         
-        const response = await axios.post('http://localhost:8080/api/resume/parse', formData, {
+        const response = await axios.post('http://localhost:8080/api/resumes/parse', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
-        
-        this.parseResult = response.data;
+
+        this.parseResult = response;
         this.showResumeDetail = true;
         
         // 解析成功后，自动发送欢迎消息

@@ -8,10 +8,8 @@
       <nav class="nav">
         <router-link to="/">首页</router-link>
         <router-link to="/chat">AI 对话</router-link>
-        <router-link to="/resume-parse">简历解析</router-link>
-        <router-link to="/chat-resume">智能简历分析</router-link>
-        <router-link to="/job-collection">职位采集</router-link>
-        <router-link to="/job-import">职位导入</router-link>
+        <router-link to="/resumes">简历管理</router-link>
+        <router-link to="/jobs">职位管理</router-link>
 
         <!-- 用户信息区域 -->
         <div v-if="authStore.isAuthenticated" class="user-menu">

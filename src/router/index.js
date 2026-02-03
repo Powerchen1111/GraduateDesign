@@ -21,28 +21,30 @@ const routes = [
     component: () => import(/* webpackChunkName: "chat" */ '../views/ChatView.vue'),
     meta: { requiresAuth: false }
   },
+  // 简历管理路由
   {
-    path: '/resume-parse',
-    name: 'resume-parse',
-    component: () => import(/* webpackChunkName: "resume-parse" */ '../views/ResumeParseView.vue'),
-    meta: { requiresAuth: false }
+    path: '/resumes',
+    name: 'ResumeList',
+    component: () => import(/* webpackChunkName: "resume-list" */ '../views/ResumeListView.vue'),
+    meta: { requiresAuth: true }
   },
   {
-    path: '/chat-resume',
-    name: 'chat-resume',
-    component: () => import(/* webpackChunkName: "chat-resume" */ '../views/ChatResumeView.vue'),
-    meta: { requiresAuth: false }
+    path: '/resumes/upload',
+    name: 'ResumeUpload',
+    component: () => import(/* webpackChunkName: "resume-upload" */ '../views/ResumeUploadView.vue'),
+    meta: { requiresAuth: true }
   },
   {
-    path: '/job-collection',
-    name: 'job-collection',
-    component: () => import(/* webpackChunkName: "job-collection" */ '../views/JobCollectionView.vue'),
-    meta: { requiresAuth: false }
+    path: '/resumes/:id',
+    name: 'ResumeDetail',
+    component: () => import(/* webpackChunkName: "resume-detail" */ '../views/ResumeDetailView.vue'),
+    meta: { requiresAuth: true }
   },
+  // 职位管理路由
   {
-    path: '/job-import',
-    name: 'job-import',
-    component: () => import(/* webpackChunkName: "job-import" */ '../views/JobImportView.vue'),
+    path: '/jobs',
+    name: 'JobManage',
+    component: () => import(/* webpackChunkName: "job-manage" */ '../views/JobManageView.vue'),
     meta: { requiresAuth: false }
   },
   // 认证相关路由

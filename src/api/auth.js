@@ -14,7 +14,7 @@ import axios from './axios'
  * @param {string} data.email - 邮箱（可选）
  */
 export const register = (data) => {
-  return axios.post('/api/auth/register', data)
+  return axios.post('/auth/register', data)
 }
 
 /**
@@ -24,21 +24,21 @@ export const register = (data) => {
  * @param {string} data.password - 密码
  */
 export const login = (data) => {
-  return axios.post('/api/auth/login', data)
+  return axios.post('/auth/login', data)
 }
 
 /**
  * 用户登出
  */
 export const logout = () => {
-  return axios.post('/api/auth/logout')
+  return axios.post('/auth/logout')
 }
 
 /**
  * 获取当前用户信息
  */
 export const getUserProfile = () => {
-  return axios.get('/api/user/profile')
+  return axios.get('/user/profile')
 }
 
 /**
@@ -49,7 +49,7 @@ export const getUserProfile = () => {
  * @param {string} data.avatarUrl - 头像URL
  */
 export const updateUserProfile = (data) => {
-  return axios.put('/api/user/profile', data)
+  return axios.put('/user/profile', data)
 }
 
 /**
@@ -59,7 +59,7 @@ export const updateUserProfile = (data) => {
  * @param {string} data.newPassword - 新密码
  */
 export const changePassword = (data) => {
-  return axios.post('/api/user/change-password', data)
+  return axios.post('/user/change-password', data)
 }
 
 /**
@@ -70,7 +70,7 @@ export const changePassword = (data) => {
  * @param {number} params.size - 每页数量
  */
 export const getUserList = (params) => {
-  return axios.get('/api/user/list', { params })
+  return axios.get('/user/list', { params })
 }
 
 /**
@@ -79,12 +79,12 @@ export const getUserList = (params) => {
  * @param {string} status - 新状态 (ACTIVE, DISABLED, LOCKED)
  */
 export const updateUserStatus = (userId, status) => {
-  return axios.put(`/api/user/${userId}/status`, { status })
+  return axios.put(`/user/${userId}/status`, { status })
 }
 
 /**
  * 获取用户统计信息（管理员）
  */
 export const getUserStatistics = () => {
-  return axios.get('/api/user/statistics')
+  return axios.get('/user/statistics')
 }

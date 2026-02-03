@@ -9,8 +9,8 @@ import router from '@/router'
 
 // 创建 axios 实例
 const instance = axios.create({
-  baseURL: 'http://localhost:8080',
-  timeout: 10000,
+  baseURL: 'http://localhost:8080/api',
+  timeout: 120000, // 120秒，适合大文件上传和AI解析
   headers: {
     'Content-Type': 'application/json'
   }
@@ -39,6 +39,20 @@ instance.interceptors.response.use(
     return response.data
   },
   (error) => {
+    // 处理超时错误
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      console.error('请求超时，请稍后重试')
+      alert('请求超时，文件可能较大或网络较慢，请稍后重试')
+      return Promise.reject({ error: '请求超时' })
+    }
+
+    // 处理网络错误
+    if (error.code === 'ERR_NETWORK' || !error.response) {
+      console.error('网络错误，请检查网络连接')
+      alert('网络连接失败，请检查网络后重试')
+      return Promise.reject({ error: '网络错误' })
+    }
+
     if (error.response) {
       const { status, data } = error.response
 
@@ -58,6 +72,11 @@ instance.interceptors.response.use(
           // 冲突（如用户已存在）
           console.error('资源冲突:', data.error)
           break
+        case 413:
+          // 文件太大
+          console.error('文件太大')
+          alert('文件太大，请上传小于10MB的文件')
+          break
         case 500:
           // 服务器错误
           console.error('服务器错误')
@@ -69,11 +88,6 @@ instance.interceptors.response.use(
 
       // 返回错误信息
       return Promise.reject(data || { error: '请求失败' })
-    } else if (error.request) {
-      // 请求已发出但没有收到响应
-      console.error('网络错误，请检查网络连接')
-      alert('网络错误，请检查网络连接')
-      return Promise.reject({ error: '网络错误' })
     } else {
       // 其他错误
       console.error('请求配置错误:', error.message)

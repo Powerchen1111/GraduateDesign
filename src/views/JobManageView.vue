@@ -8,6 +8,12 @@
     <!-- Tab 切换 -->
     <div class="tabs">
       <button
+        :class="['tab-btn', { active: activeTab === 'browse' }]"
+        @click="activeTab = 'browse'"
+      >
+        📋 职位浏览
+      </button>
+      <button
         :class="['tab-btn', { active: activeTab === 'collection' }]"
         @click="activeTab = 'collection'"
       >
@@ -25,6 +31,154 @@
       >
         📊 数据统计
       </button>
+    </div>
+
+    <!-- 职位浏览 Tab -->
+    <div v-show="activeTab === 'browse'" class="tab-content">
+      <div class="panel-card">
+        <h2>职位筛选</h2>
+
+        <!-- 筛选表单 -->
+        <div class="filter-section">
+          <div class="filter-row">
+            <div class="filter-item">
+              <label>关键词</label>
+              <input
+                v-model="filters.keyword"
+                placeholder="搜索职位标题、公司名称..."
+                class="form-input"
+                @keyup.enter="searchJobs"
+              />
+            </div>
+            <div class="filter-item">
+              <label>工作地点</label>
+              <input
+                v-model="filters.location"
+                placeholder="如：北京、上海"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <div class="filter-item">
+              <label>薪资范围</label>
+              <div class="salary-range">
+                <input
+                  v-model.number="filters.salaryMin"
+                  type="number"
+                  placeholder="最低"
+                  class="form-input"
+                />
+                <span class="range-separator">-</span>
+                <input
+                  v-model.number="filters.salaryMax"
+                  type="number"
+                  placeholder="最高"
+                  class="form-input"
+                />
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>所属行业</label>
+              <select v-model="filters.industry" class="form-input">
+                <option value="">不限</option>
+                <option v-for="ind in industries" :key="ind" :value="ind">{{ ind }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-row">
+            <div class="filter-item">
+              <label>工作类型</label>
+              <select v-model="filters.jobType" class="form-input">
+                <option value="">不限</option>
+                <option v-for="type in jobTypes" :key="type" :value="type">{{ type }}</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>学历要求</label>
+              <select v-model="filters.educationRequirement" class="form-input">
+                <option value="">不限</option>
+                <option v-for="edu in educationLevels" :key="edu" :value="edu">{{ edu }}</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label>经验要求</label>
+              <select v-model="filters.experienceRequirement" class="form-input">
+                <option value="">不限</option>
+                <option v-for="exp in experienceLevels" :key="exp" :value="exp">{{ exp }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filter-actions">
+            <button @click="searchJobs" class="primary-btn">🔍 搜索</button>
+            <button @click="resetFilters" class="secondary-btn">重置</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 职位列表 -->
+      <div v-if="jobsLoading" class="loading">
+        <div class="spinner"></div>
+        <p>加载中...</p>
+      </div>
+
+      <div v-else-if="jobs.length > 0" class="jobs-section">
+        <div class="results-header">
+          <h3>找到 {{ jobs.length }} 个职位</h3>
+        </div>
+
+        <div class="job-cards-grid">
+          <div
+            v-for="job in jobs"
+            :key="job.id"
+            class="job-card"
+            @click="viewJobDetail(job.id)"
+          >
+            <div class="job-header">
+              <h4>{{ job.title }}</h4>
+              <span class="company">🏢 {{ job.companyName }}</span>
+            </div>
+
+            <div class="job-info">
+              <div class="info-row">
+                <span class="icon">📍</span>
+                <span>{{ job.location || '地点未知' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="icon">💰</span>
+                <span>{{ formatSalary(job) }}</span>
+              </div>
+              <div class="info-row" v-if="job.educationRequirement">
+                <span class="icon">🎓</span>
+                <span>{{ job.educationRequirement }}</span>
+              </div>
+              <div class="info-row" v-if="job.experienceRequirement">
+                <span class="icon">💼</span>
+                <span>{{ job.experienceRequirement }}</span>
+              </div>
+            </div>
+
+            <div v-if="job.keywords" class="job-tags">
+              <span
+                v-for="(keyword, index) in getKeywordArray(job.keywords).slice(0, 4)"
+                :key="index"
+                class="tag"
+              >
+                {{ keyword }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3>暂无职位数据</h3>
+        <p>请调整筛选条件或使用采集功能获取职位数据</p>
+      </div>
     </div>
 
     <!-- 网络采集 Tab -->
@@ -207,6 +361,7 @@
 
 <script>
 import axios from 'axios';
+import { getJobs, advancedSearchJobs } from '@/api/job';
 
 const API_BASE_URL = 'http://localhost:8080/api/jobs';
 
@@ -214,7 +369,25 @@ export default {
   name: 'JobManageView',
   data() {
     return {
-      activeTab: 'collection',
+      activeTab: 'browse',
+
+      // 职位浏览和筛选
+      jobs: [],
+      jobsLoading: false,
+      filters: {
+        keyword: '',
+        location: '',
+        salaryMin: null,
+        salaryMax: null,
+        industry: '',
+        jobType: '',
+        educationRequirement: '',
+        experienceRequirement: ''
+      },
+      industries: ['互联网', '金融', '教育', '医疗', '制造业', '服务业', '其他'],
+      jobTypes: ['全职', '兼职', '实习', '远程'],
+      educationLevels: ['不限', '大专', '本科', '硕士', '博士'],
+      experienceLevels: ['不限', '应届生', '1年以下', '1-3年', '3-5年', '5-10年', '10年以上'],
 
       // 采集相关
       collectionForm: {
@@ -241,8 +414,105 @@ export default {
   },
   mounted() {
     this.loadStatistics();
+    this.loadJobs();
   },
   methods: {
+    // ========== 职位浏览 ==========
+    async loadJobs() {
+      this.jobsLoading = true;
+      this.errorMessage = '';
+
+      try {
+        const response = await getJobs();
+        console.log('加载职位列表:', response);
+        this.jobs = Array.isArray(response) ? response : [];
+      } catch (error) {
+        console.error('加载职位列表失败:', error);
+        this.errorMessage = '加载职位列表失败';
+        this.jobs = [];
+      } finally {
+        this.jobsLoading = false;
+      }
+    },
+
+    async searchJobs() {
+      this.jobsLoading = true;
+      this.errorMessage = '';
+
+      try {
+        // 构建筛选参数
+        const params = {};
+
+        if (this.filters.keyword) params.keyword = this.filters.keyword;
+        if (this.filters.location) params.location = this.filters.location;
+        if (this.filters.salaryMin) params.minSalary = this.filters.salaryMin;
+        if (this.filters.salaryMax) params.maxSalary = this.filters.salaryMax;
+        if (this.filters.industry) params.industry = this.filters.industry;
+        if (this.filters.jobType) params.jobType = this.filters.jobType;
+        if (this.filters.educationRequirement) params.education = this.filters.educationRequirement;
+        if (this.filters.experienceRequirement) params.experience = this.filters.experienceRequirement;
+
+        console.log('筛选参数:', params);
+
+        // 如果没有任何筛选条件，加载全部
+        if (Object.keys(params).length === 0) {
+          await this.loadJobs();
+          return;
+        }
+
+        const response = await advancedSearchJobs(params);
+        console.log('筛选结果:', response);
+        this.jobs = Array.isArray(response) ? response : [];
+
+        if (this.jobs.length === 0) {
+          this.errorMessage = '没有找到符合条件的职位';
+        }
+      } catch (error) {
+        console.error('搜索职位失败:', error);
+        this.errorMessage = '搜索职位失败';
+        this.jobs = [];
+      } finally {
+        this.jobsLoading = false;
+      }
+    },
+
+    resetFilters() {
+      this.filters = {
+        keyword: '',
+        location: '',
+        salaryMin: null,
+        salaryMax: null,
+        industry: '',
+        jobType: '',
+        educationRequirement: '',
+        experienceRequirement: ''
+      };
+      this.loadJobs();
+    },
+
+    viewJobDetail(jobId) {
+      this.$router.push(`/jobs/${jobId}`);
+    },
+
+    formatSalary(job) {
+      if (job.salaryRange) {
+        return job.salaryRange;
+      }
+
+      const { salaryMin, salaryMax, salaryCurrency } = job;
+      const currency = salaryCurrency || '元/月';
+
+      if (!salaryMin && !salaryMax) return '薪资面议';
+      if (salaryMin && salaryMax) return `${salaryMin}-${salaryMax}${currency}`;
+      if (salaryMin) return `${salaryMin}${currency}以上`;
+      return `${salaryMax}${currency}以下`;
+    },
+
+    getKeywordArray(keywords) {
+      if (!keywords) return [];
+      return keywords.split(/[,，、;；]/).map(k => k.trim()).filter(k => k);
+    },
+
     // ========== 网络采集 ==========
     async startCollection() {
       if (!this.collectionForm.keyword || !this.collectionForm.location) {
@@ -754,5 +1024,202 @@ export default {
 
 .close-btn:hover {
   background: rgba(198, 40, 40, 0.1);
+}
+
+/* 职位浏览和筛选样式 */
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-item label {
+  font-size: 14px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.salary-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.salary-range .form-input {
+  flex: 1;
+}
+
+.range-separator {
+  color: #666;
+  font-weight: 500;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.jobs-section {
+  margin-top: 24px;
+}
+
+.results-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.results-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+}
+
+.job-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.job-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.job-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  border-color: #42b983;
+}
+
+.job-card .job-header {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.job-card h4 {
+  margin: 0 0 6px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.job-card .company {
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+.job-card .job-info {
+  margin-bottom: 12px;
+}
+
+.job-card .info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #666;
+}
+
+.job-card .icon {
+  font-size: 14px;
+}
+
+.job-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.job-tags .tag {
+  padding: 4px 10px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 16px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #42b983;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  margin-top: 24px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  color: #2c3e50;
+  margin: 0 0 12px 0;
+  font-size: 20px;
+}
+
+.empty-state p {
+  color: #999;
+  margin: 0;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .job-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+  }
+
+  .filter-actions button {
+    width: 100%;
+  }
 }
 </style>

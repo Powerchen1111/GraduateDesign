@@ -47,6 +47,19 @@ const routes = [
     component: () => import(/* webpackChunkName: "job-manage" */ '../views/JobManageView.vue'),
     meta: { requiresAuth: false }
   },
+  {
+    path: '/jobs/:id',
+    name: 'JobDetail',
+    component: () => import(/* webpackChunkName: "job-detail" */ '../views/JobDetailView.vue'),
+    meta: { requiresAuth: false }
+  },
+  // 职位推荐路由
+  {
+    path: '/recommendations',
+    name: 'JobRecommendations',
+    component: () => import(/* webpackChunkName: "job-recommendations" */ '../views/JobRecommendationView.vue'),
+    meta: { requiresAuth: true }
+  },
   // 认证相关路由
   {
     path: '/login',

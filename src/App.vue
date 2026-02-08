@@ -9,6 +9,7 @@
         <router-link to="/">首页</router-link>
         <router-link to="/chat">AI 对话</router-link>
         <router-link to="/resumes">简历管理</router-link>
+        <router-link to="/recommendations">🎯 职位推荐</router-link>
         <router-link to="/jobs">职位管理</router-link>
 
         <!-- 用户信息区域 -->

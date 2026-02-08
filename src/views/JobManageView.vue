@@ -384,7 +384,11 @@ export default {
         educationRequirement: '',
         experienceRequirement: ''
       },
-      industries: ['互联网', '金融', '教育', '医疗', '制造业', '服务业', '其他'],
+      industries: [
+        '互联网', '金融', '教育', '医疗', '电子商务',
+        '制造业', '房地产', '交通物流', '文化传媒',
+        '游戏', '人工智能', '新能源', '服务业', '其他'
+      ],
       jobTypes: ['全职', '兼职', '实习', '远程'],
       educationLevels: ['不限', '大专', '本科', '硕士', '博士'],
       experienceLevels: ['不限', '应届生', '1年以下', '1-3年', '3-5年', '5-10年', '10年以上'],

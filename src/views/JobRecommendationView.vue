@@ -5,18 +5,147 @@
       <p class="subtitle">基于 AI 语义分析的智能匹配</p>
     </div>
 
-    <!-- 简历选择器 -->
-    <div class="resume-selector-card">
-      <h3>选择简历</h3>
-      <select v-model="selectedResumeId" @change="loadRecommendations" class="resume-select">
-        <option value="">选择一份简历...</option>
-        <option v-for="resume in myResumes" :key="resume.id" :value="resume.id">
-          {{ resume.personalInfo?.name || '未命名简历' }} - {{ resume.fileName }}
-        </option>
-      </select>
-      <button @click="loadAllRecommendations" class="load-all-btn">
-        🌟 查看所有推荐
+    <!-- 推荐模式选择 -->
+    <div class="mode-selector">
+      <button
+        :class="['mode-btn', { active: mode === 'preference' }]"
+        @click="mode = 'preference'"
+      >
+        💡 需求推荐
       </button>
+      <button
+        :class="['mode-btn', { active: mode === 'resume' }]"
+        @click="mode = 'resume'"
+      >
+        📄 简历推荐
+      </button>
+    </div>
+
+    <!-- 需求推荐模式 -->
+    <div v-if="mode === 'preference'" class="preference-section">
+      <div class="preference-card">
+        <h3>📝 告诉我们您的求职需求</h3>
+        <p class="hint">我们将根据您的需求，使用 AI 为您智能匹配最合适的职位</p>
+
+        <div class="preference-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>期望职位 <span class="required">*</span></label>
+              <input
+                v-model="preference.desiredPosition"
+                placeholder="如：Java开发工程师、产品经理"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <label>期望地点</label>
+              <input
+                v-model="preference.location"
+                placeholder="如：北京、上海、深圳"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>期望行业</label>
+              <select v-model="preference.industry" class="form-input">
+                <option value="">不限</option>
+                <option>互联网</option>
+                <option>金融</option>
+                <option>教育</option>
+                <option>医疗</option>
+                <option>电子商务</option>
+                <option>制造业</option>
+                <option>房地产</option>
+                <option>交通物流</option>
+                <option>文化传媒</option>
+                <option>游戏</option>
+                <option>人工智能</option>
+                <option>新能源</option>
+                <option>服务业</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>期望薪资（元/月）</label>
+              <div class="salary-range">
+                <input
+                  v-model.number="preference.salaryMin"
+                  type="number"
+                  placeholder="最低"
+                  class="form-input"
+                />
+                <span>-</span>
+                <input
+                  v-model.number="preference.salaryMax"
+                  type="number"
+                  placeholder="最高"
+                  class="form-input"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label>您的技能和经验</label>
+            <textarea
+              v-model="preference.skills"
+              placeholder="请描述您的技能、经验、优势等，如：精通Java、Spring Boot，3年开发经验，熟悉微服务架构..."
+              class="form-textarea"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>工作类型</label>
+              <select v-model="preference.jobType" class="form-input">
+                <option value="">不限</option>
+                <option>全职</option>
+                <option>兼职</option>
+                <option>实习</option>
+                <option>远程</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>期望数量</label>
+              <input
+                v-model.number="preference.topK"
+                type="number"
+                min="5"
+                max="50"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <button
+            @click="getRecommendationsByPreference"
+            :disabled="loading || !preference.desiredPosition"
+            class="recommend-btn"
+          >
+            <span v-if="!loading">🚀 开始推荐</span>
+            <span v-else>⏳ AI 分析中...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 简历推荐模式（原有功能） -->
+    <div v-else class="resume-section">
+      <div class="resume-selector-card">
+        <h3>选择简历</h3>
+        <select v-model="selectedResumeId" @change="loadRecommendations" class="resume-select">
+          <option value="">选择一份简历...</option>
+          <option v-for="resume in myResumes" :key="resume.id" :value="resume.id">
+            {{ resume.personalInfo?.name || '未命名简历' }} - {{ resume.fileName }}
+          </option>
+        </select>
+        <button @click="loadAllRecommendations" class="load-all-btn">
+          🌟 查看所有推荐
+        </button>
+      </div>
     </div>
 
     <!-- 加载状态 -->
@@ -155,11 +284,27 @@
 <script>
 import { getJobRecommendations, getMyRecommendations } from '@/api/matching'
 import { getResumes } from '@/api/resume'
+import axios from 'axios'
+
+const API_BASE_URL = 'http://localhost:8080/api'
 
 export default {
   name: 'JobRecommendationView',
   data() {
     return {
+      mode: 'preference',  // 'preference' 或 'resume'
+      // 需求推荐相关
+      preference: {
+        desiredPosition: '',
+        location: '',
+        industry: '',
+        salaryMin: null,
+        salaryMax: null,
+        skills: '',
+        jobType: '',
+        topK: 10
+      },
+      // 简历推荐相关
       myResumes: [],
       selectedResumeId: '',
       recommendations: [],
@@ -172,6 +317,68 @@ export default {
     this.loadMyResumes()
   },
   methods: {
+    /**
+     * 根据需求推荐职位
+     */
+    async getRecommendationsByPreference() {
+      if (!this.preference.desiredPosition) {
+        this.errorMessage = '请填写期望职位'
+        return
+      }
+
+      this.loading = true
+      this.errorMessage = ''
+      this.recommendations = []
+
+      try {
+        // 构建需求描述文本
+        let preferenceText = `期望职位：${this.preference.desiredPosition}。`
+
+        if (this.preference.location) {
+          preferenceText += `期望地点：${this.preference.location}。`
+        }
+        if (this.preference.industry) {
+          preferenceText += `期望行业：${this.preference.industry}。`
+        }
+        if (this.preference.salaryMin || this.preference.salaryMax) {
+          preferenceText += `期望薪资：${this.preference.salaryMin || '不限'}-${this.preference.salaryMax || '不限'}元/月。`
+        }
+        if (this.preference.jobType) {
+          preferenceText += `工作类型：${this.preference.jobType}。`
+        }
+        if (this.preference.skills) {
+          preferenceText += `技能和经验：${this.preference.skills}`
+        }
+
+        console.log('需求文本:', preferenceText)
+
+        // 调用推荐API
+        const response = await axios.post(
+          API_BASE_URL + '/matching/recommend-by-preference',
+          {
+            preferenceText: preferenceText,
+            topK: this.preference.topK,
+            location: this.preference.location,
+            industry: this.preference.industry,
+            salaryMin: this.preference.salaryMin,
+            salaryMax: this.preference.salaryMax
+          }
+        )
+
+        console.log('推荐结果:', response.data)
+        this.recommendations = Array.isArray(response.data) ? response.data : []
+
+        if (this.recommendations.length === 0) {
+          this.errorMessage = '暂无匹配的职位，请尝试调整您的需求'
+        }
+      } catch (error) {
+        console.error('获取推荐失败:', error)
+        this.errorMessage = '获取推荐失败，请稍后重试'
+        this.recommendations = []
+      } finally {
+        this.loading = false
+      }
+    },
     async loadMyResumes() {
       try {
         const response = await getResumes(true)
@@ -688,5 +895,171 @@ export default {
     align-items: flex-start;
     gap: 12px;
   }
+}
+
+/* 模式选择器样式 */
+.mode-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 8px;
+  background: #f5f7fa;
+  border-radius: 12px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 12px 24px;
+  border: 2px solid transparent;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #666;
+}
+
+.mode-btn.active {
+  background: white;
+  color: #42b983;
+  border-color: #42b983;
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
+}
+
+.mode-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.5);
+  color: #42b983;
+}
+
+/* 需求推荐样式 */
+.preference-section {
+  margin-bottom: 32px;
+}
+
+.preference-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.preference-card h3 {
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+  font-size: 20px;
+}
+
+.preference-card .hint {
+  color: #999;
+  font-size: 14px;
+  margin: 0 0 24px 0;
+}
+
+.preference-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.form-group .required {
+  color: #f56c6c;
+}
+
+.form-input {
+  padding: 12px 16px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #42b983;
+  box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.1);
+}
+
+.form-textarea {
+  padding: 12px 16px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.3s;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #42b983;
+  box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.1);
+}
+
+.salary-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.salary-range input {
+  flex: 1;
+}
+
+.salary-range span {
+  color: #999;
+  font-weight: 500;
+}
+
+.recommend-btn {
+  margin-top: 8px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #42b983 0%, #35a06f 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
+}
+
+.recommend-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(66, 185, 131, 0.4);
+}
+
+.recommend-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 简历推荐样式 */
+.resume-section {
+  margin-bottom: 32px;
 }
 </style>

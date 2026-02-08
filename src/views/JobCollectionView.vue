@@ -112,11 +112,19 @@
               <span class="stat-name">已向量化：</span>
               <span class="stat-value">{{ statistics.jobsWithEmbeddings || 0 }}</span>
             </div>
+            <div class="stat-row">
+              <span class="stat-name">向量生成率：</span>
+              <span class="stat-value">{{ statistics.embeddingRate ? statistics.embeddingRate.toFixed(1) + '%' : '0%' }}</span>
+            </div>
+            <div class="stat-row" v-if="statistics.recentJobs24h !== undefined">
+              <span class="stat-name">24小时内新增：</span>
+              <span class="stat-value highlight">{{ statistics.recentJobs24h }}</span>
+            </div>
 
             <div class="divider"></div>
 
             <div class="stat-section" v-if="statistics.byWebsite">
-              <h3>按网站统计</h3>
+              <h3>📌 按网站统计</h3>
               <div class="stat-item-small" v-for="([website, count], idx) in pageItems(websiteList, pagination.website)" :key="website + idx">
                 <span>{{ website }}：</span>
                 <strong>{{ count }}</strong>
@@ -129,7 +137,7 @@
             </div>
 
             <div class="stat-section" v-if="statistics.byIndustry">
-              <h3>按行业统计</h3>
+              <h3>🏢 按行业统计 (Top 10)</h3>
               <div class="stat-item-small" v-for="([industry, count], idx) in pageItems(industryList, pagination.industry)" :key="industry + idx">
                 <span>{{ industry || '未分类' }}：</span>
                 <strong>{{ count }}</strong>
@@ -142,7 +150,7 @@
             </div>
 
             <div class="stat-section" v-if="statistics.byLocation">
-              <h3>按地区统计</h3>
+              <h3>📍 按地区统计 (Top 15)</h3>
               <div class="stat-item-small" v-for="([location, count], idx) in pageItems(locationList, pagination.location)" :key="location + idx">
                 <span>{{ location || '未指定' }}：</span>
                 <strong>{{ count }}</strong>
@@ -151,6 +159,46 @@
                 <button :disabled="pagination.location === 1" @click="changePage('location', -1)">上一页</button>
                 <span>{{ pagination.location }} / {{ pageCount(locationList) }}</span>
                 <button :disabled="pagination.location === pageCount(locationList)" @click="changePage('location', 1)">下一页</button>
+              </div>
+            </div>
+
+            <div class="stat-section" v-if="statistics.bySalaryRange">
+              <h3>💰 薪资范围分布</h3>
+              <div class="stat-item-small" v-for="([range, count], idx) in pageItems(salaryRangeList, pagination.salaryRange)" :key="range + idx">
+                <span>{{ range }}：</span>
+                <strong>{{ count }}</strong>
+              </div>
+              <div class="pager" v-if="pageCount(salaryRangeList) > 1">
+                <button :disabled="pagination.salaryRange === 1" @click="changePage('salaryRange', -1)">上一页</button>
+                <span>{{ pagination.salaryRange }} / {{ pageCount(salaryRangeList) }}</span>
+                <button :disabled="pagination.salaryRange === pageCount(salaryRangeList)" @click="changePage('salaryRange', 1)">下一页</button>
+              </div>
+            </div>
+
+            <div class="stat-section" v-if="statistics.byJobType">
+              <h3>📋 工作类型分布</h3>
+              <div class="stat-item-small" v-for="([type, count], idx) in jobTypeList" :key="type + idx">
+                <span>{{ type }}：</span>
+                <strong>{{ count }}</strong>
+              </div>
+            </div>
+
+            <div class="stat-section" v-if="statistics.byEducation">
+              <h3>🎓 学历要求分布</h3>
+              <div class="stat-item-small" v-for="([education, count], idx) in educationList" :key="education + idx">
+                <span>{{ education }}：</span>
+                <strong>{{ count }}</strong>
+              </div>
+            </div>
+
+            <div class="stat-section" v-if="statistics.dataQuality">
+              <h3>✅ 数据质量统计</h3>
+              <div class="stat-item-small" v-for="([metric, count], idx) in dataQualityList" :key="metric + idx">
+                <span>{{ metric }}：</span>
+                <strong>{{ count }}</strong>
+                <span class="quality-percentage">
+                  ({{ statistics.totalJobs ? ((count / statistics.totalJobs) * 100).toFixed(1) : '0' }}%)
+                </span>
               </div>
             </div>
           </div>
@@ -217,7 +265,8 @@ export default {
       pagination: {
         website: 1,
         industry: 1,
-        location: 1
+        location: 1,
+        salaryRange: 1
       }
     };
   },
@@ -313,7 +362,8 @@ export default {
       const mapping = {
         website: this.websiteList,
         industry: this.industryList,
-        location: this.locationList
+        location: this.locationList,
+        salaryRange: this.salaryRangeList
       };
       const list = mapping[type] || [];
       const max = this.pageCount(list);
@@ -333,6 +383,30 @@ export default {
     locationList() {
       if (!this.statistics || !this.statistics.byLocation) return [];
       return Object.entries(this.statistics.byLocation);
+    },
+    salaryRangeList() {
+      if (!this.statistics || !this.statistics.bySalaryRange) return [];
+      // 按薪资范围顺序排列
+      const order = ['0-5K', '5-10K', '10-15K', '15-20K', '20-30K', '30K+', '未知'];
+      return order
+        .filter(range => this.statistics.bySalaryRange[range] !== undefined)
+        .map(range => [range, this.statistics.bySalaryRange[range]]);
+    },
+    jobTypeList() {
+      if (!this.statistics || !this.statistics.byJobType) return [];
+      return Object.entries(this.statistics.byJobType);
+    },
+    educationList() {
+      if (!this.statistics || !this.statistics.byEducation) return [];
+      // 按学历等级排序
+      const order = ['博士', '硕士', '本科', '大专', '不限'];
+      return order
+        .filter(edu => this.statistics.byEducation[edu] !== undefined)
+        .map(edu => [edu, this.statistics.byEducation[edu]]);
+    },
+    dataQualityList() {
+      if (!this.statistics || !this.statistics.dataQuality) return [];
+      return Object.entries(this.statistics.dataQuality);
     }
   }
 };
@@ -555,6 +629,17 @@ export default {
   font-weight: bold;
   color: #2c3e50;
   font-size: 14px;
+}
+
+.stat-value.highlight {
+  color: #42b983;
+  font-weight: bold;
+}
+
+.quality-percentage {
+  font-size: 12px;
+  color: #999;
+  margin-left: 4px;
 }
 
 .divider {

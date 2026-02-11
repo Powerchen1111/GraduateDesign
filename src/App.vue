@@ -8,9 +8,20 @@
       <nav class="nav">
         <router-link to="/">首页</router-link>
         <router-link to="/chat">AI 对话</router-link>
-        <router-link to="/resumes">简历管理</router-link>
-        <router-link to="/recommendations">🎯 职位推荐</router-link>
-        <router-link to="/jobs">职位管理</router-link>
+        <router-link to="/jobs">浏览职位</router-link>
+
+        <!-- 求职者专属菜单 -->
+        <template v-if="authStore.isJobSeeker || authStore.isAdmin">
+          <router-link to="/resumes">我的简历</router-link>
+          <router-link to="/recommendations">职位推荐</router-link>
+          <router-link to="/my-applications">我的投递</router-link>
+        </template>
+
+        <!-- 招聘者专属菜单 -->
+        <template v-if="authStore.isRecruiter || authStore.isAdmin">
+          <router-link to="/job-publish">发布职位</router-link>
+          <router-link to="/my-jobs">我的职位</router-link>
+        </template>
 
         <!-- 用户信息区域 -->
         <div v-if="authStore.isAuthenticated" class="user-menu">

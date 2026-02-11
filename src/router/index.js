@@ -85,6 +85,26 @@ const routes = [
     name: 'ChangePassword',
     component: () => import(/* webpackChunkName: "change-password" */ '../views/user/ChangePasswordView.vue'),
     meta: { requiresAuth: true }
+  },
+  // 招聘者专属路由
+  {
+    path: '/job-publish',
+    name: 'JobPublish',
+    component: () => import(/* webpackChunkName: "job-publish" */ '../views/recruiter/JobPublishView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
+  },
+  {
+    path: '/my-jobs',
+    name: 'MyJobs',
+    component: () => import(/* webpackChunkName: "my-jobs" */ '../views/recruiter/MyJobsView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
+  },
+  // 求职者专属路由
+  {
+    path: '/my-applications',
+    name: 'MyApplications',
+    component: () => import(/* webpackChunkName: "my-applications" */ '../views/seeker/MyApplicationsView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'JOB_SEEKER' }
   }
 ]
 
@@ -98,7 +118,7 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   // 初始化认证状态（仅在首次访问时）
-  if (authStore.token && !authStore.user) {
+  if (authStore.user && !authStore.isAuthenticated) {
     await authStore.initAuth()
   }
 
@@ -120,9 +140,12 @@ router.beforeEach(async (to, from, next) => {
 
   // 检查角色权限（如果路由有 requiresRole 配置）
   if (to.meta.requiresRole && authStore.userRole !== to.meta.requiresRole) {
-    // 无权限，跳转到首页
-    next({ name: 'home' })
-    return
+    // 管理员可以访问所有页面
+    if (authStore.userRole !== 'ADMIN') {
+      alert('您没有权限访问该页面')
+      next({ name: 'home' })
+      return
+    }
   }
 
   next()

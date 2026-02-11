@@ -48,6 +48,15 @@
         </div>
 
         <div class="form-item">
+          <label>真实姓名</label>
+          <input
+            v-model="formData.realName"
+            type="text"
+            placeholder="请输入真实姓名（可选）"
+          />
+        </div>
+
+        <div class="form-item">
           <label>邮箱</label>
           <input
             v-model="formData.email"
@@ -65,6 +74,16 @@
             <option value="RECRUITER">招聘方/HR</option>
           </select>
           <span v-if="errors.role" class="error-message">{{ errors.role }}</span>
+        </div>
+
+        <div v-if="formData.role === 'RECRUITER'" class="form-item">
+          <label>公司名称 <span class="required">*</span></label>
+          <input
+            v-model="formData.company"
+            type="text"
+            placeholder="请输入公司名称"
+          />
+          <span v-if="errors.company" class="error-message">{{ errors.company }}</span>
         </div>
 
         <div v-if="errorMessage" class="error-banner">
@@ -108,8 +127,10 @@ export default {
         password: '',
         confirmPassword: '',
         username: '',
+        realName: '',
         email: '',
-        role: ''
+        role: '',
+        company: ''
       },
       errors: {},
       errorMessage: '',
@@ -161,6 +182,12 @@ export default {
       // 验证角色
       if (!this.formData.role) {
         this.errors.role = '请选择用户角色'
+        return false
+      }
+
+      // 验证公司名称（招聘者必填）
+      if (this.formData.role === 'RECRUITER' && !this.formData.company) {
+        this.errors.company = '招聘方必须填写公司名称'
         return false
       }
 

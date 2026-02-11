@@ -12,6 +12,8 @@ import axios from './axios'
  * @param {string} data.username - 用户名
  * @param {string} data.role - 用户角色 (ADMIN, RECRUITER, JOB_SEEKER)
  * @param {string} data.email - 邮箱（可选）
+ * @param {string} data.company - 公司名称（招聘者必填）
+ * @param {string} data.realName - 真实姓名（可选）
  */
 export const register = (data) => {
   return axios.post('/auth/register', data)
@@ -28,63 +30,34 @@ export const login = (data) => {
 }
 
 /**
- * 用户登出
+ * 获取用户信息
+ * @param {number} userId - 用户ID
  */
-export const logout = () => {
-  return axios.post('/auth/logout')
-}
-
-/**
- * 获取当前用户信息
- */
-export const getUserProfile = () => {
-  return axios.get('/user/profile')
-}
-
-/**
- * 更新用户信息
- * @param {Object} data - 更新数据
- * @param {string} data.username - 用户名
- * @param {string} data.email - 邮箱
- * @param {string} data.avatarUrl - 头像URL
- */
-export const updateUserProfile = (data) => {
-  return axios.put('/user/profile', data)
+export const getUserInfo = (userId) => {
+  return axios.get(`/auth/user/${userId}`)
 }
 
 /**
  * 修改密码
  * @param {Object} data - 密码数据
+ * @param {string} data.userId - 用户ID
  * @param {string} data.oldPassword - 旧密码
  * @param {string} data.newPassword - 新密码
  */
 export const changePassword = (data) => {
-  return axios.post('/user/change-password', data)
+  return axios.post('/auth/change-password', data)
 }
 
 /**
- * 获取用户列表（管理员）
- * @param {Object} params - 查询参数
- * @param {string} params.role - 角色筛选
- * @param {number} params.page - 页码
- * @param {number} params.size - 每页数量
- */
-export const getUserList = (params) => {
-  return axios.get('/user/list', { params })
-}
-
-/**
- * 修改用户状态（管理员）
+ * 更新用户信息
  * @param {number} userId - 用户ID
- * @param {string} status - 新状态 (ACTIVE, DISABLED, LOCKED)
+ * @param {Object} data - 更新数据
+ * @param {string} data.username - 用户名
+ * @param {string} data.email - 邮箱
+ * @param {string} data.company - 公司名称
+ * @param {string} data.realName - 真实姓名
  */
-export const updateUserStatus = (userId, status) => {
-  return axios.put(`/user/${userId}/status`, { status })
+export const updateUserInfo = (userId, data) => {
+  return axios.put(`/auth/user/${userId}`, data)
 }
 
-/**
- * 获取用户统计信息（管理员）
- */
-export const getUserStatistics = () => {
-  return axios.get('/user/statistics')
-}

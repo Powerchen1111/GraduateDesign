@@ -4,17 +4,15 @@
  */
 
 import { defineStore } from 'pinia'
-import { login as loginApi, register as registerApi, getUserProfile } from '@/api/auth'
-import { setToken, getToken, setUser, getUser, clearAuth } from '@/utils/storage'
+import { login as loginApi, register as registerApi, getUserInfo } from '@/api/auth'
+import { setUser, getUser, clearAuth } from '@/utils/storage'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    // 认证 token
-    token: getToken() || null,
     // 用户信息
     user: getUser() || null,
     // 是否已认证
-    isAuthenticated: !!getToken(),
+    isAuthenticated: !!getUser(),
     // 加载状态
     loading: false
   }),
@@ -63,13 +61,11 @@ export const useAuthStore = defineStore('auth', {
         const response = await loginApi({ phone, password })
 
         if (response.success) {
-          // 保存 token 和用户信息
-          this.token = response.data.token
-          this.user = response.data.user
+          // 保存用户信息
+          this.user = response.user
           this.isAuthenticated = true
 
-          setToken(response.data.token)
-          setUser(response.data.user)
+          setUser(response.user)
 
           return { success: true }
         } else {
@@ -108,13 +104,18 @@ export const useAuthStore = defineStore('auth', {
      * 获取用户信息
      */
     async fetchUserProfile() {
+      if (!this.user || !this.user.id) {
+        this.logout()
+        return
+      }
+
       try {
-        const response = await getUserProfile()
+        const response = await getUserInfo(this.user.id)
 
         if (response.success) {
-          this.user = response.data
+          this.user = response.user
           this.isAuthenticated = true
-          setUser(response.data)
+          setUser(response.user)
         } else {
           // 获取失败，清除认证信息
           this.logout()
@@ -130,7 +131,6 @@ export const useAuthStore = defineStore('auth', {
      * 用户登出
      */
     logout() {
-      this.token = null
       this.user = null
       this.isAuthenticated = false
       clearAuth()
@@ -138,10 +138,10 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * 初始化认证状态
-     * 在应用启动时调用，验证 token 是否有效
+     * 在应用启动时调用，验证用户信息是否有效
      */
     async initAuth() {
-      if (this.token) {
+      if (this.user) {
         await this.fetchUserProfile()
       }
     },

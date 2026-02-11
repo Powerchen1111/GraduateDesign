@@ -23,8 +23,8 @@
             <span class="salary">💰 {{ job.salaryRange || getSalaryRange() }}</span>
           </div>
         </div>
-        <div class="job-actions">
-          <button class="primary-btn">立即申请</button>
+        <div class="job-actions" v-if="authStore.isJobSeeker">
+          <button class="primary-btn" @click="showApplyDialog">立即申请</button>
           <button class="secondary-btn">收藏职位</button>
         </div>
       </div>
@@ -107,9 +107,70 @@
       </div>
 
       <!-- 底部操作栏 -->
-      <div class="bottom-actions">
-        <button class="primary-btn large">立即申请</button>
+      <div class="bottom-actions" v-if="authStore.isJobSeeker">
+        <button class="primary-btn large" @click="showApplyDialog">立即申请</button>
         <button class="secondary-btn large">分享职位</button>
+      </div>
+    </div>
+
+    <!-- 投递简历对话框 -->
+    <div v-if="showDialog" class="dialog-overlay" @click="closeDialog">
+      <div class="dialog-content" @click.stop>
+        <div class="dialog-header">
+          <h3>选择简历投递</h3>
+          <button class="close-btn" @click="closeDialog">×</button>
+        </div>
+
+        <div class="dialog-body">
+          <div v-if="loadingResumes" class="loading-resumes">
+            <div class="spinner-small"></div>
+            <p>加载简历列表...</p>
+          </div>
+
+          <div v-else-if="resumes.length === 0" class="no-resumes">
+            <p>您还没有上传简历</p>
+            <button class="primary-btn" @click="goToUpload">上传简历</button>
+          </div>
+
+          <div v-else class="resume-list">
+            <div
+              v-for="resume in resumes"
+              :key="resume.id"
+              class="resume-item"
+              :class="{ selected: selectedResumeId === resume.id }"
+              @click="selectedResumeId = resume.id"
+            >
+              <div class="resume-info">
+                <h4>{{ resume.parsedName || resume.fileName }}</h4>
+                <p class="resume-meta">
+                  <span v-if="resume.phone">📱 {{ resume.phone }}</span>
+                  <span v-if="resume.email">📧 {{ resume.email }}</span>
+                </p>
+                <p class="resume-skills" v-if="resume.skills">
+                  技能: {{ resume.skills.substring(0, 50) }}{{ resume.skills.length > 50 ? '...' : '' }}
+                </p>
+              </div>
+              <div class="resume-check">
+                <span v-if="selectedResumeId === resume.id">✓</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="applyError" class="error-message">
+            {{ applyError }}
+          </div>
+        </div>
+
+        <div class="dialog-footer">
+          <button class="secondary-btn" @click="closeDialog">取消</button>
+          <button
+            class="primary-btn"
+            @click="submitApplication"
+            :disabled="!selectedResumeId || applying"
+          >
+            {{ applying ? '投递中...' : '确认投递' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -125,14 +186,27 @@
 
 <script>
 import { getJobById } from '@/api/job'
+import { getResumes } from '@/api/resume'
+import { applyJob } from '@/api/application'
+import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'JobDetailView',
+  setup() {
+    const authStore = useAuthStore()
+    return { authStore }
+  },
   data() {
     return {
       job: null,
       loading: false,
-      errorMessage: ''
+      errorMessage: '',
+      showDialog: false,
+      resumes: [],
+      loadingResumes: false,
+      selectedResumeId: null,
+      applying: false,
+      applyError: ''
     }
   },
   mounted() {
@@ -157,6 +231,78 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+    async showApplyDialog() {
+      if (!this.authStore.isAuthenticated) {
+        alert('请先登录')
+        this.$router.push('/login')
+        return
+      }
+
+      if (!this.authStore.isJobSeeker) {
+        alert('只有求职者可以投递简历')
+        return
+      }
+
+      this.showDialog = true
+      this.loadResumes()
+    },
+
+    async loadResumes() {
+      this.loadingResumes = true
+      try {
+        const response = await getResumes(true) // myOnly = true
+        console.log('简历列表响应:', response)
+        this.resumes = response || []
+      } catch (error) {
+        console.error('加载简历列表失败:', error)
+        this.resumes = []
+      } finally {
+        this.loadingResumes = false
+      }
+    },
+
+    async submitApplication() {
+      if (!this.selectedResumeId) {
+        this.applyError = '请选择一份简历'
+        return
+      }
+
+      this.applying = true
+      this.applyError = ''
+
+      try {
+        const response = await applyJob({
+          resumeId: this.selectedResumeId,
+          jobId: this.job.id,
+          seekerId: this.authStore.user.id
+        })
+
+        console.log('投递响应:', response)
+
+        if (response.success) {
+          alert('投递成功！')
+          this.closeDialog()
+        } else {
+          this.applyError = response.error || '投递失败'
+        }
+      } catch (error) {
+        console.error('投递失败:', error)
+        this.applyError = error.error || '投递失败，请稍后重试'
+      } finally {
+        this.applying = false
+      }
+    },
+
+    closeDialog() {
+      this.showDialog = false
+      this.selectedResumeId = null
+      this.applyError = ''
+    },
+
+    goToUpload() {
+      this.$router.push('/resumes/upload')
     },
 
     getSalaryRange() {
@@ -524,5 +670,188 @@ export default {
   .bottom-actions button {
     width: 100%;
   }
+}
+
+/* 对话框样式 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #2c3e50;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.close-btn:hover {
+  background: #f5f5f5;
+}
+
+.dialog-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.loading-resumes {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.spinner-small {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #42b983;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.no-resumes {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.no-resumes p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.resume-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resume-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resume-item:hover {
+  border-color: #42b983;
+  background: #f8f9fa;
+}
+
+.resume-item.selected {
+  border-color: #42b983;
+  background: #e8f5e9;
+}
+
+.resume-info {
+  flex: 1;
+}
+
+.resume-info h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #2c3e50;
+}
+
+.resume-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.resume-skills {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+.resume-check {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #42b983;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.resume-item.selected .resume-check {
+  opacity: 1;
+}
+
+.error-message {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fef0f0;
+  border: 1px solid #fde2e2;
+  border-radius: 6px;
+  color: #f56c6c;
+  font-size: 14px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.dialog-footer button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

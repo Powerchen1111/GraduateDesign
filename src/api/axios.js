@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios'
-import { getToken, clearAuth } from '@/utils/storage'
+import { clearAuth } from '@/utils/storage'
 import router from '@/router'
 
 // 创建 axios 实例
@@ -19,11 +19,7 @@ const instance = axios.create({
 // 请求拦截器
 instance.interceptors.request.use(
   (config) => {
-    // 自动添加 token 到请求头
-    const token = getToken()
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    // 后端不使用 JWT token，直接返回配置
     return config
   },
   (error) => {

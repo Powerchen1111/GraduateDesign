@@ -11,6 +11,8 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     // 用户信息
     user: getUser() || null,
+    // JWT token
+    token: localStorage.getItem('token') || null,
     // 是否已认证
     isAuthenticated: !!getUser(),
     // 加载状态
@@ -61,11 +63,13 @@ export const useAuthStore = defineStore('auth', {
         const response = await loginApi({ phone, password })
 
         if (response.success) {
-          // 保存用户信息
+          // 保存用户信息和token
           this.user = response.user
+          this.token = response.token
           this.isAuthenticated = true
 
           setUser(response.user)
+          localStorage.setItem('token', response.token)
 
           return { success: true }
         } else {
@@ -132,8 +136,10 @@ export const useAuthStore = defineStore('auth', {
      */
     logout() {
       this.user = null
+      this.token = null
       this.isAuthenticated = false
       clearAuth()
+      localStorage.removeItem('token')
     },
 
     /**

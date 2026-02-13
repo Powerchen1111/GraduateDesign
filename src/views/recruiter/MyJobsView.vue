@@ -180,7 +180,7 @@ export default {
       try {
         const response = await getPublisherJobs(this.authStore.user.id)
         console.log('职位列表响应:', response)
-        this.jobs = response || []
+        this.jobs = response.jobs || []
       } catch (error) {
         console.error('加载职位列表失败:', error)
         this.jobs = []
@@ -234,6 +234,7 @@ export default {
       this.$router.push(`/jobs/${jobId}`)
     },
 
+    // eslint-disable-next-line no-unused-vars
     editJob(jobId) {
       // TODO: 实现编辑功能
       alert('编辑功能开发中')

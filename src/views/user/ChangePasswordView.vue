@@ -120,6 +120,7 @@ export default {
 
       this.loading = true
       try {
+        // eslint-disable-next-line no-unused-vars
         const { confirmPassword, ...data } = this.formData
         const response = await changePassword(data)
 

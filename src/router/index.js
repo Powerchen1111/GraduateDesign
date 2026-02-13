@@ -99,11 +99,29 @@ const routes = [
     component: () => import(/* webpackChunkName: "my-jobs" */ '../views/recruiter/MyJobsView.vue'),
     meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
   },
+  {
+    path: '/received-applications',
+    name: 'ReceivedApplications',
+    component: () => import(/* webpackChunkName: "received-applications" */ '../views/recruiter/ReceivedApplicationsView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
+  },
+  {
+    path: '/candidate-recommendations',
+    name: 'CandidateRecommendations',
+    component: () => import(/* webpackChunkName: "candidate-recommendations" */ '../views/recruiter/CandidateRecommendationView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
+  },
   // 求职者专属路由
   {
     path: '/my-applications',
     name: 'MyApplications',
     component: () => import(/* webpackChunkName: "my-applications" */ '../views/seeker/MyApplicationsView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'JOB_SEEKER' }
+  },
+  {
+    path: '/my-favorites',
+    name: 'MyFavorites',
+    component: () => import(/* webpackChunkName: "my-favorites" */ '../views/seeker/MyFavoritesView.vue'),
     meta: { requiresAuth: true, requiresRole: 'JOB_SEEKER' }
   }
 ]

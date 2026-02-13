@@ -99,3 +99,13 @@ export function getJobsByIndustry() {
 export function getJobsByLocation() {
   return axiosInstance.get('/jobs/by-location')
 }
+
+/**
+ * 获取招聘者发布的职位列表
+ *
+ * @param {number} publisherId - 发布者ID
+ * @returns {Promise}
+ */
+export function getPublisherJobs(publisherId) {
+  return axiosInstance.get(`/jobs/publisher/${publisherId}`)
+}

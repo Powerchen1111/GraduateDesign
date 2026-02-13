@@ -199,6 +199,7 @@ export default {
         return
       }
 
+      // eslint-disable-next-line no-unused-vars
       const { confirmPassword, ...registerData } = this.formData
       const result = await this.authStore.register(registerData)
 

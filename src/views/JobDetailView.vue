@@ -25,7 +25,9 @@
         </div>
         <div class="job-actions" v-if="authStore.isJobSeeker">
           <button class="primary-btn" @click="showApplyDialog">立即申请</button>
-          <button class="secondary-btn">收藏职位</button>
+          <button class="secondary-btn" @click="toggleFavorite">
+            {{ isFavorite ? '⭐ 已收藏' : '☆ 收藏职位' }}
+          </button>
         </div>
       </div>
 
@@ -161,7 +163,7 @@
                   <span v-if="resume.email">📧 {{ resume.email }}</span>
                 </p>
                 <p class="resume-skills" v-if="resume.skills">
-                  技能: {{ resume.skills.substring(0, 50) }}{{ resume.skills.length > 50 ? '...' : '' }}
+                  技能: {{ typeof resume.skills === 'string' ? (resume.skills.substring(0, 50) + (resume.skills.length > 50 ? '...' : '')) : resume.skills }}
                 </p>
               </div>
               <div class="resume-check">
@@ -194,6 +196,7 @@
 import { getJobById } from '@/api/job'
 import { getResumes } from '@/api/resume'
 import { applyJob } from '@/api/application'
+import { checkFavorite, addFavorite, removeFavorite } from '@/api/favorite'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
@@ -212,11 +215,13 @@ export default {
       loadingResumes: false,
       selectedResumeId: null,
       applying: false,
-      applyError: ''
+      applyError: '',
+      isFavorite: false
     }
   },
   mounted() {
     this.loadJobDetail()
+    this.checkFavoriteStatus()
   },
   methods: {
     async loadJobDetail() {
@@ -347,7 +352,9 @@ export default {
           if (!line) return ''
 
           // 检测是否为列表项（以数字、符号等开头）
+          // eslint-disable-next-line no-useless-escape
           if (/^[\d\-\*\•]/.test(line)) {
+            // eslint-disable-next-line no-useless-escape
             return `<li>${line.replace(/^[\d\-\*\•\.\)]\s*/, '')}</li>`
           }
 
@@ -371,6 +378,45 @@ export default {
       if (diffDays < 365) return `${Math.floor(diffDays / 30)}个月前`
 
       return date.toLocaleDateString('zh-CN')
+    },
+
+    async checkFavoriteStatus() {
+      if (!this.authStore.isAuthenticated || !this.authStore.isJobSeeker) {
+        return
+      }
+
+      const jobId = this.$route.params.id
+      try {
+        const response = await checkFavorite(jobId)
+        this.isFavorite = response.isFavorite
+      } catch (error) {
+        console.error('检查收藏状态失败:', error)
+      }
+    },
+
+    async toggleFavorite() {
+      if (!this.authStore.isAuthenticated) {
+        alert('请先登录')
+        this.$router.push('/login')
+        return
+      }
+
+      const jobId = this.$route.params.id
+
+      try {
+        if (this.isFavorite) {
+          await removeFavorite(jobId)
+          this.isFavorite = false
+          alert('取消收藏成功')
+        } else {
+          await addFavorite({ jobId })
+          this.isFavorite = true
+          alert('收藏成功')
+        }
+      } catch (error) {
+        console.error('操作失败:', error)
+        alert(error.error || '操作失败')
+      }
     },
 
     goBack() {

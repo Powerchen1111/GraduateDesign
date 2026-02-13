@@ -19,7 +19,11 @@ const instance = axios.create({
 // 请求拦截器
 instance.interceptors.request.use(
   (config) => {
-    // 后端不使用 JWT token，直接返回配置
+    // 从localStorage获取token，添加到Authorization header
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
     return config
   },
   (error) => {

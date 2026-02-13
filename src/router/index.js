@@ -100,6 +100,12 @@ const routes = [
     meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
   },
   {
+    path: '/jobs/edit/:id',
+    name: 'JobEdit',
+    component: () => import(/* webpackChunkName: "job-edit" */ '../views/recruiter/JobEditView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
+  },
+  {
     path: '/received-applications',
     name: 'ReceivedApplications',
     component: () => import(/* webpackChunkName: "received-applications" */ '../views/recruiter/ReceivedApplicationsView.vue'),

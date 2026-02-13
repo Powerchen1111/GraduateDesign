@@ -14,18 +14,21 @@
         📋 职位浏览
       </button>
       <button
+        v-if="authStore.isAdmin"
         :class="['tab-btn', { active: activeTab === 'collection' }]"
         @click="activeTab = 'collection'"
       >
         🔍 网络采集
       </button>
       <button
+        v-if="authStore.isAdmin"
         :class="['tab-btn', { active: activeTab === 'import' }]"
         @click="activeTab = 'import'"
       >
         📥 Excel导入
       </button>
       <button
+        v-if="authStore.isAdmin"
         :class="['tab-btn', { active: activeTab === 'statistics' }]"
         @click="activeTab = 'statistics'"
       >
@@ -127,7 +130,10 @@
 
       <div v-else-if="jobs.length > 0" class="jobs-section">
         <div class="results-header">
-          <h3>找到 {{ jobs.length }} 个职位</h3>
+          <h3>找到 {{ totalItems }} 个职位</h3>
+          <div class="pagination-info">
+            第 {{ currentPage + 1 }} / {{ totalPages }} 页
+          </div>
         </div>
 
         <div class="job-cards-grid">
@@ -175,6 +181,34 @@
               </span>
             </div>
           </div>
+        </div>
+
+        <!-- 分页控件 -->
+        <div class="pagination-controls">
+          <button
+            @click="goToPage(currentPage - 1)"
+            :disabled="currentPage === 0"
+            class="pagination-btn"
+          >
+            ← 上一页
+          </button>
+          <div class="page-numbers">
+            <button
+              v-for="page in visiblePages"
+              :key="page"
+              @click="goToPage(page)"
+              :class="['page-btn', { active: page === currentPage }]"
+            >
+              {{ page + 1 }}
+            </button>
+          </div>
+          <button
+            @click="goToPage(currentPage + 1)"
+            :disabled="currentPage >= totalPages - 1"
+            class="pagination-btn"
+          >
+            下一页 →
+          </button>
         </div>
       </div>
 
@@ -366,11 +400,16 @@
 <script>
 import axios from 'axios';
 import { getJobs, advancedSearchJobs } from '@/api/job';
+import { useAuthStore } from '@/stores/auth';
 
 const API_BASE_URL = 'http://localhost:8080/api/jobs';
 
 export default {
   name: 'JobManageView',
+  setup() {
+    const authStore = useAuthStore();
+    return { authStore };
+  },
   data() {
     return {
       activeTab: 'browse',
@@ -378,6 +417,10 @@ export default {
       // 职位浏览和筛选
       jobs: [],
       jobsLoading: false,
+      currentPage: 0,
+      totalPages: 0,
+      totalItems: 0,
+      pageSize: 20,
       filters: {
         keyword: '',
         location: '',
@@ -420,20 +463,59 @@ export default {
       errorMessage: ''
     };
   },
+  computed: {
+    visiblePages() {
+      const pages = [];
+      const maxVisible = 5;
+      let start = Math.max(0, this.currentPage - Math.floor(maxVisible / 2));
+      let end = Math.min(this.totalPages, start + maxVisible);
+
+      if (end - start < maxVisible) {
+        start = Math.max(0, end - maxVisible);
+      }
+
+      for (let i = start; i < end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+  },
   mounted() {
-    this.loadStatistics();
     this.loadJobs();
+    if (this.authStore.isAdmin) {
+      this.loadStatistics();
+    }
+  },
+  watch: {
+    activeTab(newTab) {
+      // 非管理员尝试访问管理员专属功能时，重定向到浏览页面
+      if (!this.authStore.isAdmin && ['collection', 'import', 'statistics'].includes(newTab)) {
+        this.activeTab = 'browse';
+        this.errorMessage = '该功能仅限管理员使用';
+      }
+    }
   },
   methods: {
     // ========== 职位浏览 ==========
-    async loadJobs() {
+    async loadJobs(page = 0) {
       this.jobsLoading = true;
       this.errorMessage = '';
 
       try {
-        const response = await getJobs();
+        const response = await getJobs({ page, size: this.pageSize });
         console.log('加载职位列表:', response);
-        this.jobs = Array.isArray(response) ? response : [];
+
+        if (response.jobs) {
+          this.jobs = response.jobs;
+          this.currentPage = response.currentPage || 0;
+          this.totalPages = response.totalPages || 0;
+          this.totalItems = response.totalItems || 0;
+        } else {
+          this.jobs = Array.isArray(response) ? response : [];
+          this.currentPage = 0;
+          this.totalPages = 1;
+          this.totalItems = this.jobs.length;
+        }
       } catch (error) {
         console.error('加载职位列表失败:', error);
         this.errorMessage = '加载职位列表失败';
@@ -519,6 +601,12 @@ export default {
     getKeywordArray(keywords) {
       if (!keywords) return [];
       return keywords.split(/[,，、;；]/).map(k => k.trim()).filter(k => k);
+    },
+
+    goToPage(page) {
+      if (page < 0 || page >= this.totalPages) return;
+      this.currentPage = page;
+      this.loadJobs(page);
     },
 
     // ========== 网络采集 ==========
@@ -1088,12 +1176,80 @@ export default {
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 2px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .results-header h3 {
   margin: 0;
   color: #2c3e50;
   font-size: 18px;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #666;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 20px 0;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #2c3e50;
+  transition: all 0.3s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #42b983;
+  color: white;
+  border-color: #42b983;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 6px;
+}
+
+.page-btn {
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #2c3e50;
+  transition: all 0.3s;
+  min-width: 40px;
+}
+
+.page-btn:hover {
+  background: #f5f5f5;
+  border-color: #42b983;
+}
+
+.page-btn.active {
+  background: #42b983;
+  color: white;
+  border-color: #42b983;
+  font-weight: 600;
 }
 
 .job-cards-grid {

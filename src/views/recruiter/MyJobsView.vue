@@ -236,8 +236,7 @@ export default {
 
     // eslint-disable-next-line no-unused-vars
     editJob(jobId) {
-      // TODO: 实现编辑功能
-      alert('编辑功能开发中')
+      this.$router.push(`/jobs/edit/${jobId}`)
     },
 
     async pauseJob(jobId) {

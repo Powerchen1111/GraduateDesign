@@ -28,6 +28,11 @@
           <router-link to="/candidate-recommendations">候选人推荐</router-link>
         </template>
 
+        <!-- 管理员专属菜单 -->
+        <template v-if="authStore.isAdmin">
+          <router-link to="/job-manage">职位管理</router-link>
+        </template>
+
         <!-- 用户信息区域 -->
         <div v-if="authStore.isAuthenticated" class="user-menu">
           <div class="user-info" @click="toggleMenu">

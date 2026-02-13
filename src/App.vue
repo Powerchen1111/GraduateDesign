@@ -178,9 +178,22 @@ export default {
 }
 
 .page {
+  margin: 0;
+  padding: 0;
+}
+
+.page > * {
   max-width: 1280px;
-  margin: 24px auto 40px;
-  padding: 0 24px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* 首页特殊处理 - 允许全宽 */
+.page > .home-container {
+  max-width: 100%;
+  padding: 0;
 }
 
 /* 用户菜单样式 */

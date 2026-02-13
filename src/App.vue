@@ -12,6 +12,7 @@
 
         <!-- 求职者专属菜单 -->
         <template v-if="authStore.isJobSeeker || authStore.isAdmin">
+          <router-link to="/seeker-dashboard">数据统计</router-link>
           <router-link to="/resumes">我的简历</router-link>
           <router-link to="/recommendations">职位推荐</router-link>
           <router-link to="/my-applications">我的投递</router-link>
@@ -20,6 +21,7 @@
 
         <!-- 招聘者专属菜单 -->
         <template v-if="authStore.isRecruiter || authStore.isAdmin">
+          <router-link to="/recruiter-dashboard">数据统计</router-link>
           <router-link to="/job-publish">发布职位</router-link>
           <router-link to="/my-jobs">我的职位</router-link>
           <router-link to="/received-applications">收到的简历</router-link>

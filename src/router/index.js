@@ -111,7 +111,19 @@ const routes = [
     component: () => import(/* webpackChunkName: "candidate-recommendations" */ '../views/recruiter/CandidateRecommendationView.vue'),
     meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
   },
+  {
+    path: '/recruiter-dashboard',
+    name: 'RecruiterDashboard',
+    component: () => import(/* webpackChunkName: "recruiter-dashboard" */ '../views/recruiter/RecruiterDashboardView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'RECRUITER' }
+  },
   // 求职者专属路由
+  {
+    path: '/seeker-dashboard',
+    name: 'SeekerDashboard',
+    component: () => import(/* webpackChunkName: "seeker-dashboard" */ '../views/seeker/SeekerDashboardView.vue'),
+    meta: { requiresAuth: true, requiresRole: 'JOB_SEEKER' }
+  },
   {
     path: '/my-applications',
     name: 'MyApplications',

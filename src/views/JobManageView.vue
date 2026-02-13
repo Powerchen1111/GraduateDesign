@@ -159,6 +159,10 @@
                 <span class="icon">💼</span>
                 <span>{{ job.experienceRequirement }}</span>
               </div>
+              <div class="info-row" v-if="job.sourceWebsite">
+                <span class="icon">🔗</span>
+                <span class="source-tag">{{ job.sourceWebsite }}</span>
+              </div>
             </div>
 
             <div v-if="job.keywords" class="job-tags">
@@ -1147,6 +1151,12 @@ export default {
 
 .job-card .icon {
   font-size: 14px;
+}
+
+.source-tag {
+  color: #42b983;
+  font-weight: 500;
+  font-size: 12px;
 }
 
 .job-tags {

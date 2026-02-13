@@ -80,6 +80,12 @@
               <span class="label">信息来源:</span>
               <span class="value">{{ job.sourceWebsite }}</span>
             </div>
+            <div class="info-item" v-if="job.jobUrl">
+              <span class="label">原始链接:</span>
+              <a :href="job.jobUrl" target="_blank" class="job-link">
+                查看原始职位 →
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -111,6 +117,14 @@
         <button class="primary-btn large" @click="showApplyDialog">立即申请</button>
         <button class="secondary-btn large">分享职位</button>
       </div>
+    </div>
+
+    <!-- 错误状态 -->
+    <div v-else class="error-state">
+      <div class="error-icon">⚠️</div>
+      <h3>职位不存在</h3>
+      <p>该职位可能已被删除或不存在</p>
+      <button @click="goBack" class="primary-btn">返回</button>
     </div>
 
     <!-- 投递简历对话框 -->
@@ -172,14 +186,6 @@
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- 错误状态 -->
-    <div v-else class="error-state">
-      <div class="error-icon">⚠️</div>
-      <h3>职位不存在</h3>
-      <p>该职位可能已被删除或不存在</p>
-      <button @click="goBack" class="primary-btn">返回</button>
     </div>
   </div>
 </template>
@@ -555,6 +561,22 @@ export default {
   font-size: 14px;
   font-weight: 500;
   text-align: right;
+}
+
+.job-link {
+  color: #42b983;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.job-link:hover {
+  color: #35495e;
+  text-decoration: underline;
 }
 
 .detail-card {

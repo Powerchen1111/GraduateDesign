@@ -194,6 +194,10 @@
               <span class="icon">💰</span>
               <span>{{ job.salaryRange || '薪资面议' }}</span>
             </div>
+            <div class="info-row" v-if="job.sourceWebsite">
+              <span class="icon">🔗</span>
+              <span class="source-tag">{{ job.sourceWebsite }}</span>
+            </div>
           </div>
 
           <!-- 匹配详情 -->
@@ -693,6 +697,12 @@ export default {
 
 .icon {
   font-size: 16px;
+}
+
+.source-tag {
+  color: #42b983;
+  font-weight: 500;
+  font-size: 12px;
 }
 
 .match-details {
